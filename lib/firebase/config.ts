@@ -30,11 +30,11 @@ function validateFirebaseConfig() {
 
 // Initialiser Firebase (éviter les doubles initialisations)
 let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
+let dbInstance: Firestore | null = null;
 
 function initializeFirebase() {
-  if (app && db) {
-    return { app, db };
+  if (app && dbInstance) {
+    return { app, db: dbInstance };
   }
 
   validateFirebaseConfig();
@@ -52,24 +52,36 @@ function initializeFirebase() {
 
   // Initialiser Firestore
   try {
-    db = getFirestore(app);
+    dbInstance = getFirestore(app);
   } catch (error) {
     console.error('Error initializing Firestore:', error);
     throw error;
   }
 
-  return { app, db };
+  return { app, db: dbInstance };
 }
 
 // Exporter une fonction qui initialise et retourne db
 export function getDb(): Firestore {
-  if (!db) {
-    const { db: initializedDb } = initializeFirebase();
-    return initializedDb;
+  if (!dbInstance) {
+    const { db } = initializeFirebase();
+    return db;
   }
-  return db;
+  return dbInstance;
 }
 
-// Pour compatibilité
-export const db = getDb();
-export default app || initializeFirebase().app;
+// Pour compatibilité (lazy initialization via getter)
+let _db: Firestore | undefined;
+export const db = (() => {
+  if (!_db) {
+    _db = getDb();
+  }
+  return _db;
+})();
+
+export default function getApp(): FirebaseApp {
+  if (!app) {
+    return initializeFirebase().app;
+  }
+  return app;
+}
