@@ -23,6 +23,10 @@ export default function Home() {
     setIsLoading(true);
 
     try {
+      // Timeout de 60 secondes pour l'appel API
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: {
@@ -34,7 +38,10 @@ export default function Home() {
           birthDate: formData.birthDate,
           birthPlace: formData.birthPlace || undefined,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const data = await response.json();
@@ -44,7 +51,11 @@ export default function Home() {
       const data = await response.json();
       router.push(`/analyse/${data.profileId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('La requête a pris trop de temps. Veuillez réessayer.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      }
       setIsLoading(false);
     }
   };

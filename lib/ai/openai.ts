@@ -63,7 +63,12 @@ export async function generateFreeReport(
   try {
     const prompt = getFreeReportPrompt(data);
 
-    const completion = await openai.chat.completions.create({
+    // Timeout de 30 secondes pour éviter que la requête ne reste bloquée
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('OpenAI timeout after 30s')), 30000);
+    });
+
+    const completionPromise = openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -77,7 +82,10 @@ export async function generateFreeReport(
       ],
       temperature: 0.7,
       response_format: { type: 'json_object' },
+      max_tokens: 1000, // Limiter la réponse pour éviter les timeouts
     });
+
+    const completion = await Promise.race([completionPromise, timeoutPromise]) as any;
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
@@ -113,7 +121,12 @@ export async function generatePremiumReport(
   try {
     const prompt = getPromptForReportType(type, data);
 
-    const completion = await openai.chat.completions.create({
+    // Timeout de 30 secondes pour éviter que la requête ne reste bloquée
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('OpenAI timeout after 30s')), 30000);
+    });
+
+    const completionPromise = openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -127,7 +140,10 @@ export async function generatePremiumReport(
       ],
       temperature: 0.7,
       response_format: { type: 'json_object' },
+      max_tokens: 1500, // Limiter la réponse pour éviter les timeouts
     });
+
+    const completion = await Promise.race([completionPromise, timeoutPromise]) as any;
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {

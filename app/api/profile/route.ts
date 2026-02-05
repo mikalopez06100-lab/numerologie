@@ -70,14 +70,19 @@ export async function POST(request: NextRequest) {
       personality: numerology.personality || undefined,
     };
 
+    // Générer le rapport gratuit (avec timeout implicite dans generateFreeReport)
+    console.log('Génération du rapport gratuit...');
     const freeReportContent = await generateFreeReport(profileData);
+    console.log('Rapport généré avec succès');
 
     // Sauvegarder le rapport FREE
+    console.log('Sauvegarde du rapport...');
     await createReport({
       profileId: profile.id,
       type: 'FREE',
       contentJson: JSON.stringify(freeReportContent),
     });
+    console.log('Rapport sauvegardé');
 
     // Logger l'événement
     logEventAsync('profile_created', { profileId: profile.id }, profile.id);
