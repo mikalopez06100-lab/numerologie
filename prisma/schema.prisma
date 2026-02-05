@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ReportType {
+  FREE
+  YEAR
+  MONTH
+  NEXT_12_MONTHS
+  LOVE
+  MOTHER
+  FATHER
+  WORK
+  MISSION
+  DEEP_PROFILE
+}
+
+enum ModuleType {
+  YEAR
+  MONTH
+  NEXT_12_MONTHS
+  LOVE
+  MOTHER
+  FATHER
+  WORK
+  MISSION
+  DEEP_PROFILE
+}
+
+model Profile {
+  id         String      @id @default(cuid())
+  firstName  String
+  lastName   String
+  birthDate  String
+  birthPlace String?
+  createdAt  DateTime    @default(now())
+
+  numerology Numerology?
+  reports    Report[]
+  unlocks    Unlock[]
+
+  @@map("profiles")
+}
+
+model Numerology {
+  id          String   @id @default(cuid())
+  profileId   String   @unique
+  lifePath    Int
+  expression  Int
+  soulUrge    Int
+  personality Int?
+  createdAt   DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("numerologies")
+}
+
+model Report {
+  id         String     @id @default(cuid())
+  profileId  String
+  type       ReportType
+  contentJson Json
+  createdAt  DateTime   @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model Unlock {
+  id         String     @id @default(cuid())
+  profileId  String
+  moduleType ModuleType
+  isUnlocked Boolean    @default(false)
+  unlockedAt DateTime?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("unlocks")
+}
+
+model EventLog {
+  id        String   @id @default(cuid())
+  profileId String?
+  eventType String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("event_logs")
+}
