@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import {
+  getProfile,
+  getNumerologyByProfileId,
+  getUnlocksByProfileId,
+  getReportsByProfileId,
+} from '@/lib/firebase/firestore';
 
 export async function GET(
   request: NextRequest,
@@ -8,16 +13,12 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const profile = await prisma.profile.findUnique({
-      where: { id },
-      include: {
-        numerology: true,
-        unlocks: true,
-        reports: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
+    const [profile, numerology, unlocks, reports] = await Promise.all([
+      getProfile(id),
+      getNumerologyByProfileId(id),
+      getUnlocksByProfileId(id),
+      getReportsByProfileId(id),
+    ]);
 
     if (!profile) {
       return NextResponse.json(
@@ -26,7 +27,15 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(profile, { status: 200 });
+    return NextResponse.json(
+      {
+        ...profile,
+        numerology,
+        unlocks,
+        reports,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json(
       { error: 'Erreur serveur' },

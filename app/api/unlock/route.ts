@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import {
+  getProfile,
+  getNumerologyByProfileId,
+  createOrUpdateUnlock,
+  createReport,
+} from '@/lib/firebase/firestore';
 import { z } from 'zod';
 import { generatePremiumReport } from '@/lib/ai/openai';
 import type { ProfileData } from '@/lib/ai/prompts';
@@ -44,12 +49,10 @@ export async function POST(request: NextRequest) {
     moduleType = parsed.moduleType;
 
     // Vérifier que le profil existe et récupérer la numérologie
-    const profile = await prisma.profile.findUnique({
-      where: { id: profileId },
-      include: {
-        numerology: true,
-      },
-    });
+    const [profile, numerology] = await Promise.all([
+      getProfile(profileId),
+      getNumerologyByProfileId(profileId),
+    ]);
 
     if (!profile) {
       return NextResponse.json(
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!profile.numerology) {
+    if (!numerology) {
       return NextResponse.json(
         { error: 'Numérologie non trouvée pour ce profil' },
         { status: 404 }
@@ -68,35 +71,13 @@ export async function POST(request: NextRequest) {
     // Simuler le paiement (mock - toujours OK)
     // Dans une vraie app, on vérifierait ici le paiement SMS
 
-    // Chercher ou créer l'unlock
-    const existingUnlock = await prisma.unlock.findFirst({
-      where: {
-        profileId,
-        moduleType,
-      },
+    // Créer ou mettre à jour l'unlock
+    const unlock = await createOrUpdateUnlock({
+      profileId,
+      moduleType,
+      isUnlocked: true,
+      unlockedAt: new Date(),
     });
-
-    let unlock;
-    if (existingUnlock) {
-      // Mettre à jour si existe déjà
-      unlock = await prisma.unlock.update({
-        where: { id: existingUnlock.id },
-        data: {
-          isUnlocked: true,
-          unlockedAt: new Date(),
-        },
-      });
-    } else {
-      // Créer un nouvel unlock
-      unlock = await prisma.unlock.create({
-        data: {
-          profileId,
-          moduleType,
-          isUnlocked: true,
-          unlockedAt: new Date(),
-        },
-      });
-    }
 
     // Générer le rapport premium pour ce module
     const reportType = MODULE_TO_REPORT_TYPE[moduleType];
@@ -111,11 +92,11 @@ export async function POST(request: NextRequest) {
       firstName: profile.firstName,
       lastName: profile.lastName,
       birthDate: profile.birthDate,
-      birthPlace: profile.birthPlace,
-      lifePath: profile.numerology.lifePath,
-      expression: profile.numerology.expression,
-      soulUrge: profile.numerology.soulUrge,
-      personality: profile.numerology.personality,
+      birthPlace: profile.birthPlace || undefined,
+      lifePath: numerology.lifePath,
+      expression: numerology.expression,
+      soulUrge: numerology.soulUrge,
+      personality: numerology.personality || undefined,
     };
 
     let reportContent;
@@ -131,13 +112,11 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // Sauvegarder le rapport (convertir JSON en string pour SQLite)
-    await prisma.report.create({
-      data: {
-        profileId: profile.id,
-        type: reportType,
-        contentJson: JSON.stringify(reportContent),
-      },
+    // Sauvegarder le rapport
+    await createReport({
+      profileId: profile.id,
+      type: reportType,
+      contentJson: JSON.stringify(reportContent),
     });
 
     // Logger les événements

@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Règles pour les profils - lecture publique, écriture serveur uniquement
+    match /profiles/{profileId} {
+      allow read: if true; // Lecture publique (pour l'API)
+      allow write: if false; // Écriture uniquement côté serveur (via API)
+    }
+
+    // Règles pour les numérologies - lecture publique, écriture serveur uniquement
+    match /numerologies/{numerologyId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Règles pour les rapports - lecture publique, écriture serveur uniquement
+    match /reports/{reportId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Règles pour les unlocks - lecture publique, écriture serveur uniquement
+    match /unlocks/{unlockId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Règles pour les logs d'événements - lecture admin uniquement, écriture serveur uniquement
+    match /event_logs/{eventLogId} {
+      allow read: if false; // Lecture uniquement via API avec token admin
+      allow write: if false; // Écriture uniquement côté serveur (via API)
+    }
+  }
+}

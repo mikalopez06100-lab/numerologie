@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { createProfile, createNumerology, createReport } from '@/lib/firebase/firestore';
 import { createProfileSchema } from '@/lib/validations';
 import {
   calculateLifePath,
@@ -32,25 +32,21 @@ export async function POST(request: NextRequest) {
       validatedData.lastName
     );
 
-    // Création du profil et de la numérologie en transaction
-    const profile = await prisma.profile.create({
-      data: {
-        firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
-        birthDate: validatedData.birthDate,
-        birthPlace: validatedData.birthPlace,
-        numerology: {
-          create: {
-            lifePath,
-            expression,
-            soulUrge,
-            personality,
-          },
-        },
-      },
-      include: {
-        numerology: true,
-      },
+    // Création du profil
+    const profile = await createProfile({
+      firstName: validatedData.firstName,
+      lastName: validatedData.lastName,
+      birthDate: validatedData.birthDate,
+      birthPlace: validatedData.birthPlace || null,
+    });
+
+    // Création de la numérologie
+    const numerology = await createNumerology({
+      profileId: profile.id,
+      lifePath,
+      expression,
+      soulUrge,
+      personality,
     });
 
     // Générer le rapport gratuit (FREE)
@@ -58,22 +54,20 @@ export async function POST(request: NextRequest) {
       firstName: profile.firstName,
       lastName: profile.lastName,
       birthDate: profile.birthDate,
-      birthPlace: profile.birthPlace,
-      lifePath: profile.numerology!.lifePath,
-      expression: profile.numerology!.expression,
-      soulUrge: profile.numerology!.soulUrge,
-      personality: profile.numerology!.personality,
+      birthPlace: profile.birthPlace || undefined,
+      lifePath: numerology.lifePath,
+      expression: numerology.expression,
+      soulUrge: numerology.soulUrge,
+      personality: numerology.personality || undefined,
     };
 
     const freeReportContent = await generateFreeReport(profileData);
 
-    // Sauvegarder le rapport FREE (convertir JSON en string pour SQLite)
-    await prisma.report.create({
-      data: {
-        profileId: profile.id,
-        type: 'FREE',
-        contentJson: JSON.stringify(freeReportContent),
-      },
+    // Sauvegarder le rapport FREE
+    await createReport({
+      profileId: profile.id,
+      type: 'FREE',
+      contentJson: JSON.stringify(freeReportContent),
     });
 
     // Logger l'événement
@@ -83,7 +77,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         profileId: profile.id,
-        numerology: profile.numerology,
+        numerology: {
+          id: numerology.id,
+          profileId: numerology.profileId,
+          lifePath: numerology.lifePath,
+          expression: numerology.expression,
+          soulUrge: numerology.soulUrge,
+          personality: numerology.personality,
+          createdAt: numerology.createdAt,
+        },
       },
       { status: 201 }
     );

@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { createEventLog } from './firebase/firestore';
 
 export type EventType =
   | 'profile_created'
@@ -24,12 +24,10 @@ export async function logEvent(
   profileId?: string
 ): Promise<void> {
   try {
-    await prisma.eventLog.create({
-      data: {
-        eventType,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-        profileId: profileId || null,
-      },
+    await createEventLog({
+      eventType,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+      profileId: profileId || null,
     });
   } catch (error) {
     // Fail silently pour ne pas interrompre le flux principal
