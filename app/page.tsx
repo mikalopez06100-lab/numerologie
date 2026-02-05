@@ -23,9 +23,9 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Timeout de 60 secondes pour l'appel API
+      // Timeout de 30 secondes pour l'appel API (réduit car le rapport est généré en arrière-plan)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch('/api/profile', {
         method: 'POST',

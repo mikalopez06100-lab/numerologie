@@ -111,37 +111,49 @@ export async function POST(request: NextRequest) {
       personality: numerology.personality || undefined,
     };
 
-    // Générer le rapport gratuit (avec timeout implicite dans generateFreeReport)
-    let freeReportContent;
-    try {
-      console.log('Génération du rapport gratuit...');
-      freeReportContent = await generateFreeReport(profileData);
-      console.log('Rapport généré avec succès');
-    } catch (error) {
-      console.error('Error generating report:', error);
-      // Continuer même si le rapport échoue
-      freeReportContent = {
-        portrait: 'Analyse en cours...',
-        forces: [],
-        defis: [],
-        insight: 'Votre analyse sera disponible prochainement.',
-        outro: 'Merci de votre patience.',
-      };
-    }
-
-    // Sauvegarder le rapport FREE
-    try {
-      console.log('Sauvegarde du rapport...');
-      await createReport({
-        profileId: profile.id,
-        type: 'FREE',
-        contentJson: JSON.stringify(freeReportContent),
-      });
-      console.log('Rapport sauvegardé');
-    } catch (error) {
-      console.error('Error saving report:', error);
-      // Ne pas bloquer si le rapport ne peut pas être sauvegardé
-    }
+    // Générer le rapport gratuit de manière asynchrone (ne pas bloquer la réponse)
+    // On répond immédiatement et on génère le rapport en arrière-plan
+    (async () => {
+      try {
+        console.log('Génération du rapport gratuit en arrière-plan...');
+        const freeReportContent = await generateFreeReport(profileData);
+        console.log('Rapport généré avec succès');
+        
+        // Sauvegarder le rapport FREE
+        await createReport({
+          profileId: profile.id,
+          type: 'FREE',
+          contentJson: JSON.stringify(freeReportContent),
+        });
+        console.log('Rapport sauvegardé');
+      } catch (error) {
+        console.error('Error generating/saving report:', error);
+        // Utiliser le fallback si OpenAI échoue
+        try {
+          const fallbackReport = {
+            portrait: `Bonjour ${profile.firstName}, votre profil numérologique révèle des traits uniques basés sur votre chemin de vie ${numerology.lifePath}, votre expression ${numerology.expression} et votre aspiration ${numerology.soulUrge}.`,
+            forces: [
+              'Capacité d\'adaptation remarquable',
+              'Intuition développée',
+              'Sens de la communication',
+            ],
+            defis: [
+              'Apprendre à mieux gérer le stress',
+              'Développer la patience',
+            ],
+            insight: 'Votre parcours de vie est marqué par une recherche constante d\'équilibre et d\'harmonie. Les nombres qui vous accompagnent suggèrent un potentiel créatif et une capacité à inspirer les autres.',
+            outro: 'Découvrez maintenant vos analyses premium pour approfondir votre connaissance de vous-même.',
+          };
+          await createReport({
+            profileId: profile.id,
+            type: 'FREE',
+            contentJson: JSON.stringify(fallbackReport),
+          });
+        } catch (saveError) {
+          console.error('Error saving fallback report:', saveError);
+        }
+      }
+    })();
 
     // Logger l'événement
     logEventAsync('profile_created', { profileId: profile.id }, profile.id);
