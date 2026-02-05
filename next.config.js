@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  // Configuration Next.js pour Vercel
 };
 
 module.exports = nextConfig;
