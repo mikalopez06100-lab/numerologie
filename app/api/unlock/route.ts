@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getProfile,
   getNumerologyByProfileId,
+  getUnlockByProfileAndModule,
   createOrUpdateUnlock,
   createReport,
 } from '@/lib/firebase/firestore';
@@ -71,6 +72,9 @@ export async function POST(request: NextRequest) {
     // Simuler le paiement (mock - toujours OK)
     // Dans une vraie app, on vérifierait ici le paiement SMS
 
+    // Vérifier si l'unlock existe déjà
+    const existingUnlock = await getUnlockByProfileAndModule(profileId, moduleType);
+    
     // Créer ou mettre à jour l'unlock
     const unlock = await createOrUpdateUnlock({
       profileId,
