@@ -10,15 +10,33 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Vérifier que toutes les variables sont définies
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.error('Firebase configuration is missing. Please check your environment variables.');
+  throw new Error('Firebase configuration is incomplete. Missing required environment variables.');
+}
+
 // Initialiser Firebase (éviter les doubles initialisations)
 let app: FirebaseApp;
 if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    throw error;
+  }
 } else {
   app = getApps()[0];
 }
 
 // Initialiser Firestore
-export const db: Firestore = getFirestore(app);
+let db: Firestore;
+try {
+  db = getFirestore(app);
+} catch (error) {
+  console.error('Error initializing Firestore:', error);
+  throw error;
+}
 
+export { db };
 export default app;

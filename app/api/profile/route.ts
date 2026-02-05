@@ -14,6 +14,15 @@ import { logEventAsync } from '@/lib/tracking';
 
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier que Firebase est configuré
+    if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+      console.error('Firebase not configured');
+      return NextResponse.json(
+        { error: 'Configuration Firebase manquante' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = createProfileSchema.parse(body);
 
@@ -90,7 +99,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    // Logger les erreurs
+    // Logger les erreurs avec plus de détails en développement
+    console.error('Error in POST /api/profile:', error);
+    
     if (error instanceof Error && error.message.includes('AI')) {
       logEventAsync('error_ai', { error: error.message });
     }

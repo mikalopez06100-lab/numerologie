@@ -80,21 +80,26 @@ export async function createProfile(data: {
   birthDate: string;
   birthPlace?: string | null;
 }): Promise<Profile> {
-  const profileRef = doc(collection(db, 'profiles'));
-  const id = profileRef.id;
-  const profileData = {
-    ...data,
-    id,
-    createdAt: serverTimestamp(),
-  };
+  try {
+    const profileRef = doc(collection(db, 'profiles'));
+    const id = profileRef.id;
+    const profileData = {
+      ...data,
+      id,
+      createdAt: serverTimestamp(),
+    };
 
-  await setDoc(profileRef, profileData);
+    await setDoc(profileRef, profileData);
 
-  return {
-    id,
-    ...data,
-    createdAt: new Date(),
-  };
+    return {
+      id,
+      ...data,
+      createdAt: new Date(),
+    };
+  } catch (error) {
+    console.error('Error creating profile in Firestore:', error);
+    throw new Error(`Failed to create profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export async function getProfile(id: string): Promise<Profile | null> {
