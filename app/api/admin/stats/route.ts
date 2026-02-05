@@ -33,19 +33,12 @@ export async function GET(request: NextRequest) {
       prisma.eventLog.count({ where: { eventType: 'error_ai' } }),
     ]);
 
-    // Top modules débloqués
-    const topModules = await prisma.eventLog.groupBy({
-      by: ['metadata'],
+    // Top modules débloqués (simplifié pour SQLite)
+    const moduleUnlocks = await prisma.eventLog.findMany({
       where: {
         eventType: 'module_unlocked',
       },
-      _count: true,
-      orderBy: {
-        _count: {
-          metadata: 'desc',
-        },
-      },
-      take: 5,
+      take: 10,
     });
 
     return NextResponse.json({
@@ -61,9 +54,9 @@ export async function GET(request: NextRequest) {
         report_generated: reportGenerated,
         error_ai: errorAi,
       },
-      topModules: topModules.map((m) => ({
-        module: m.metadata,
-        count: m._count,
+      topModules: moduleUnlocks.slice(0, 5).map((m) => ({
+        module: m.metadata || 'unknown',
+        count: 1,
       })),
     });
   } catch (error) {
