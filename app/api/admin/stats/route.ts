@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getEventLogsByType } from '@/lib/firebase/firestore';
 import { checkAdminToken } from '@/lib/middleware';
 import { collection, getDocs, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { getDb } from '@/lib/firebase/config';
 
 export async function GET(request: NextRequest) {
   // Vérifier le token admin
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Compter les profils
+    const db = getDb();
     const profilesSnapshot = await getDocs(collection(db, 'profiles'));
     const totalProfiles = profilesSnapshot.size;
 

@@ -23,8 +23,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const validatedData = createProfileSchema.parse(body);
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return NextResponse.json(
+        { error: 'Format de données invalide' },
+        { status: 400 }
+      );
+    }
+
+    let validatedData;
+    try {
+      validatedData = createProfileSchema.parse(body);
+    } catch (error) {
+      console.error('Validation error:', error);
+      return NextResponse.json(
+        { error: 'Les données fournies sont invalides. Veuillez vérifier votre saisie.' },
+        { status: 400 }
+      );
+    }
 
     // Calculs numérologiques
     const lifePath = calculateLifePath(validatedData.birthDate, false);
@@ -42,21 +61,43 @@ export async function POST(request: NextRequest) {
     );
 
     // Création du profil
-    const profile = await createProfile({
-      firstName: validatedData.firstName,
-      lastName: validatedData.lastName,
-      birthDate: validatedData.birthDate,
-      birthPlace: validatedData.birthPlace || null,
-    });
+    let profile;
+    try {
+      console.log('Création du profil...');
+      profile = await createProfile({
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        birthDate: validatedData.birthDate,
+        birthPlace: validatedData.birthPlace || null,
+      });
+      console.log('Profil créé:', profile.id);
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      return NextResponse.json(
+        { error: 'Erreur lors de la création du profil' },
+        { status: 500 }
+      );
+    }
 
     // Création de la numérologie
-    const numerology = await createNumerology({
-      profileId: profile.id,
-      lifePath,
-      expression,
-      soulUrge,
-      personality,
-    });
+    let numerology;
+    try {
+      console.log('Création de la numérologie...');
+      numerology = await createNumerology({
+        profileId: profile.id,
+        lifePath,
+        expression,
+        soulUrge,
+        personality,
+      });
+      console.log('Numérologie créée:', numerology.id);
+    } catch (error) {
+      console.error('Error creating numerology:', error);
+      return NextResponse.json(
+        { error: 'Erreur lors du calcul numérologique' },
+        { status: 500 }
+      );
+    }
 
     // Générer le rapport gratuit (FREE)
     const profileData: ProfileData = {
@@ -71,18 +112,36 @@ export async function POST(request: NextRequest) {
     };
 
     // Générer le rapport gratuit (avec timeout implicite dans generateFreeReport)
-    console.log('Génération du rapport gratuit...');
-    const freeReportContent = await generateFreeReport(profileData);
-    console.log('Rapport généré avec succès');
+    let freeReportContent;
+    try {
+      console.log('Génération du rapport gratuit...');
+      freeReportContent = await generateFreeReport(profileData);
+      console.log('Rapport généré avec succès');
+    } catch (error) {
+      console.error('Error generating report:', error);
+      // Continuer même si le rapport échoue
+      freeReportContent = {
+        portrait: 'Analyse en cours...',
+        forces: [],
+        defis: [],
+        insight: 'Votre analyse sera disponible prochainement.',
+        outro: 'Merci de votre patience.',
+      };
+    }
 
     // Sauvegarder le rapport FREE
-    console.log('Sauvegarde du rapport...');
-    await createReport({
-      profileId: profile.id,
-      type: 'FREE',
-      contentJson: JSON.stringify(freeReportContent),
-    });
-    console.log('Rapport sauvegardé');
+    try {
+      console.log('Sauvegarde du rapport...');
+      await createReport({
+        profileId: profile.id,
+        type: 'FREE',
+        contentJson: JSON.stringify(freeReportContent),
+      });
+      console.log('Rapport sauvegardé');
+    } catch (error) {
+      console.error('Error saving report:', error);
+      // Ne pas bloquer si le rapport ne peut pas être sauvegardé
+    }
 
     // Logger l'événement
     logEventAsync('profile_created', { profileId: profile.id }, profile.id);
@@ -106,42 +165,56 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // Logger les erreurs avec plus de détails en développement
     console.error('Error in POST /api/profile:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     
-    if (error instanceof Error && error.message.includes('AI')) {
-      logEventAsync('error_ai', { error: error.message });
-    }
+    // TOUJOURS retourner du JSON, même en cas d'erreur
+    try {
+      if (error instanceof Error && error.message.includes('AI')) {
+        logEventAsync('error_ai', { error: error.message });
+      }
 
-    // Erreur de validation Zod
-    if (error instanceof ZodError) {
+      // Erreur de validation Zod
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          { error: 'Les données fournies sont invalides. Veuillez vérifier votre saisie.' },
+          { status: 400 }
+        );
+      }
+      // Erreur de calcul numérologique
+      if (error instanceof Error && error.message.includes('Date')) {
+        return NextResponse.json(
+          { error: 'La date de naissance est invalide. Format attendu: YYYY-MM-DD' },
+          { status: 400 }
+        );
+      }
+      // Erreur générique
+      if (error instanceof Error) {
+        // Masquer les détails techniques en production
+        const isProduction = process.env.NODE_ENV === 'production';
+        return NextResponse.json(
+          { 
+            error: isProduction 
+              ? 'Une erreur est survenue. Veuillez réessayer plus tard.' 
+              : error.message 
+          },
+          { status: 500 }
+        );
+      }
+      // Erreur inconnue
       return NextResponse.json(
-        { error: 'Les données fournies sont invalides. Veuillez vérifier votre saisie.' },
-        { status: 400 }
+        { error: 'Une erreur est survenue. Veuillez réessayer plus tard.' },
+        { status: 500 }
       );
-    }
-    // Erreur de calcul numérologique
-    if (error instanceof Error && error.message.includes('Date')) {
-      return NextResponse.json(
-        { error: 'La date de naissance est invalide. Format attendu: YYYY-MM-DD' },
-        { status: 400 }
-      );
-    }
-    // Erreur générique
-    if (error instanceof Error) {
-      // Masquer les détails techniques en production
-      const isProduction = process.env.NODE_ENV === 'production';
-      return NextResponse.json(
+    } catch (jsonError) {
+      // Si même le JSON échoue, retourner une réponse minimale
+      console.error('Error creating JSON response:', jsonError);
+      return new NextResponse(
+        JSON.stringify({ error: 'Erreur serveur interne' }),
         { 
-          error: isProduction 
-            ? 'Une erreur est survenue. Veuillez réessayer plus tard.' 
-            : error.message 
-        },
-        { status: 400 }
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
-    // Erreur inconnue
-    return NextResponse.json(
-      { error: 'Une erreur est survenue. Veuillez réessayer plus tard.' },
-      { status: 500 }
-    );
   }
 }

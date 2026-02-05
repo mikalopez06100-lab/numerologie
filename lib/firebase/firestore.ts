@@ -13,7 +13,7 @@ import {
   type DocumentData,
   type QueryConstraint,
 } from 'firebase/firestore';
-import { db } from './config';
+import { getDb } from './config';
 
 // Types pour correspondre au schéma Prisma
 export interface Profile {
@@ -81,6 +81,7 @@ export async function createProfile(data: {
   birthPlace?: string | null;
 }): Promise<Profile> {
   try {
+    const db = getDb();
     const profileRef = doc(collection(db, 'profiles'));
     const id = profileRef.id;
     const profileData = {
@@ -103,6 +104,7 @@ export async function createProfile(data: {
 }
 
 export async function getProfile(id: string): Promise<Profile | null> {
+  const db = getDb();
   const docRef = doc(db, 'profiles', id);
   const docSnap = await getDoc(docRef);
 
@@ -130,6 +132,7 @@ export async function createNumerology(data: {
   soulUrge: number;
   personality?: number | null;
 }): Promise<Numerology> {
+  const db = getDb();
   const numerologyRef = doc(collection(db, 'numerologies'));
   const id = numerologyRef.id;
   const numerologyData = {
@@ -149,6 +152,7 @@ export async function createNumerology(data: {
 }
 
 export async function getNumerologyByProfileId(profileId: string): Promise<Numerology | null> {
+  const db = getDb();
   const q = query(
     collection(db, 'numerologies'),
     where('profileId', '==', profileId)
@@ -179,6 +183,7 @@ export async function createReport(data: {
   type: string;
   contentJson: string;
 }): Promise<Report> {
+  const db = getDb();
   const reportRef = doc(collection(db, 'reports'));
   const id = reportRef.id;
   const reportData = {
@@ -197,6 +202,7 @@ export async function createReport(data: {
 }
 
 export async function getReportsByProfileId(profileId: string): Promise<Report[]> {
+  const db = getDb();
   const q = query(
     collection(db, 'reports'),
     where('profileId', '==', profileId),
@@ -222,6 +228,7 @@ export async function getUnlockByProfileAndModule(
   profileId: string,
   moduleType: string
 ): Promise<Unlock | null> {
+  const db = getDb();
   const q = query(
     collection(db, 'unlocks'),
     where('profileId', '==', profileId),
@@ -250,6 +257,7 @@ export async function createOrUpdateUnlock(data: {
   isUnlocked: boolean;
   unlockedAt?: Date | null;
 }): Promise<Unlock> {
+  const db = getDb();
   const existing = await getUnlockByProfileAndModule(data.profileId, data.moduleType);
 
   if (existing) {
@@ -292,6 +300,7 @@ export async function createOrUpdateUnlock(data: {
 }
 
 export async function getUnlocksByProfileId(profileId: string): Promise<Unlock[]> {
+  const db = getDb();
   const q = query(
     collection(db, 'unlocks'),
     where('profileId', '==', profileId)
@@ -317,6 +326,7 @@ export async function createEventLog(data: {
   metadata?: string | null;
   profileId?: string | null;
 }): Promise<EventLog> {
+  const db = getDb();
   const eventRef = doc(collection(db, 'event_logs'));
   const id = eventRef.id;
   const eventData = {
@@ -336,6 +346,7 @@ export async function createEventLog(data: {
 }
 
 export async function getEventLogsByType(eventType: string): Promise<EventLog[]> {
+  const db = getDb();
   const q = query(
     collection(db, 'event_logs'),
     where('eventType', '==', eventType)
