@@ -34,9 +34,14 @@ const MODULE_TO_REPORT_TYPE: Record<string, 'YEAR' | 'MONTH' | 'NEXT_12_MONTHS' 
 };
 
 export async function POST(request: NextRequest) {
+  let profileId: string | undefined;
+  let moduleType: string | undefined;
+  
   try {
     const body = await request.json();
-    const { profileId, moduleType } = unlockSchema.parse(body);
+    const parsed = unlockSchema.parse(body);
+    profileId = parsed.profileId;
+    moduleType = parsed.moduleType;
 
     // Vérifier que le profil existe et récupérer la numérologie
     const profile = await prisma.profile.findUnique({
@@ -148,7 +153,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     // Logger les erreurs
-    if (error instanceof Error && error.message.includes('AI')) {
+    if (error instanceof Error && error.message.includes('AI') && moduleType && profileId) {
       logEventAsync('error_ai', { 
         moduleType,
         profileId,
