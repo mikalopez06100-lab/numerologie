@@ -74,6 +74,8 @@ model EventLog {
   metadata  String?  // JSON stocké comme String (SQLite ne supporte pas Json)
   createdAt DateTime @default(now())
 
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
   @@index([eventType])
   @@index([createdAt])
   @@map("event_logs")
