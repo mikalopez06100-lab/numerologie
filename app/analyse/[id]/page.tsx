@@ -7,7 +7,7 @@ import SectionTitle from '@/components/ui/SectionTitle';
 import ModuleGrid from '@/components/ModuleGrid';
 import UpsellPanel from '@/components/UpsellPanel';
 import SocialProof from '@/components/SocialProof';
-import { ModuleType } from '@prisma/client';
+import type { ModuleType } from '@/lib/types';
 
 interface Profile {
   id: string;

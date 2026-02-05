@@ -126,12 +126,12 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // Sauvegarder le rapport
+    // Sauvegarder le rapport (convertir JSON en string pour SQLite)
     await prisma.report.create({
       data: {
         profileId: profile.id,
         type: reportType,
-        contentJson: reportContent,
+        contentJson: JSON.stringify(reportContent),
       },
     });
 

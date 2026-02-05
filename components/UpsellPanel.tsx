@@ -1,4 +1,4 @@
-import { ModuleType } from '@prisma/client';
+import type { ModuleType } from '@/lib/types';
 import Card from './ui/Card';
 import Button from './ui/Button';
 

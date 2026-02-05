@@ -27,7 +27,7 @@ export async function logEvent(
     await prisma.eventLog.create({
       data: {
         eventType,
-        metadata: metadata || {},
+        metadata: metadata ? JSON.stringify(metadata) : null,
         profileId: profileId || null,
       },
     });

@@ -10,30 +10,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ReportType {
-  FREE
-  YEAR
-  MONTH
-  NEXT_12_MONTHS
-  LOVE
-  MOTHER
-  FATHER
-  WORK
-  MISSION
-  DEEP_PROFILE
-}
-
-enum ModuleType {
-  YEAR
-  MONTH
-  NEXT_12_MONTHS
-  LOVE
-  MOTHER
-  FATHER
-  WORK
-  MISSION
-  DEEP_PROFILE
-}
+// Note: SQLite ne supporte pas les enums, on utilise String
+// Les valeurs possibles sont documentées dans le code
 
 model Profile {
   id         String      @id @default(cuid())
@@ -46,6 +24,7 @@ model Profile {
   numerology Numerology?
   reports    Report[]
   unlocks    Unlock[]
+  eventLogs  EventLog[]
 
   @@map("profiles")
 }
@@ -65,10 +44,10 @@ model Numerology {
 }
 
 model Report {
-  id         String     @id @default(cuid())
+  id         String   @id @default(cuid())
   profileId  String
-  type       ReportType
-  contentJson Json
+  type       String   // ReportType: FREE, YEAR, MONTH, NEXT_12_MONTHS, LOVE, MOTHER, FATHER, WORK, MISSION, DEEP_PROFILE
+  contentJson String  // JSON stocké comme String (SQLite ne supporte pas Json)
   createdAt  DateTime   @default(now())
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -77,9 +56,9 @@ model Report {
 }
 
 model Unlock {
-  id         String     @id @default(cuid())
+  id         String   @id @default(cuid())
   profileId  String
-  moduleType ModuleType
+  moduleType String  // ModuleType: YEAR, MONTH, NEXT_12_MONTHS, LOVE, MOTHER, FATHER, WORK, MISSION, DEEP_PROFILE
   isUnlocked Boolean    @default(false)
   unlockedAt DateTime?
 
@@ -92,7 +71,7 @@ model EventLog {
   id        String   @id @default(cuid())
   profileId String?
   eventType String
-  metadata  Json?
+  metadata  String?  // JSON stocké comme String (SQLite ne supporte pas Json)
   createdAt DateTime @default(now())
 
   @@index([eventType])

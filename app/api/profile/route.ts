@@ -67,12 +67,12 @@ export async function POST(request: NextRequest) {
 
     const freeReportContent = await generateFreeReport(profileData);
 
-    // Sauvegarder le rapport FREE
+    // Sauvegarder le rapport FREE (convertir JSON en string pour SQLite)
     await prisma.report.create({
       data: {
         profileId: profile.id,
         type: 'FREE',
-        contentJson: freeReportContent,
+        contentJson: JSON.stringify(freeReportContent),
       },
     });
 
