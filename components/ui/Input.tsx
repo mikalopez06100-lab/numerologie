@@ -26,6 +26,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ${error ? 'border-red-500' : ''}
             ${className}
           `}
+          style={className.includes('glass-input') ? {} : undefined}
           {...props}
         />
         {error && (
