@@ -13,21 +13,26 @@ import type { ProfileData } from '@/lib/ai/prompts';
 import { logEventAsync } from '@/lib/tracking';
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('[API] POST /api/profile - Début');
+  
   try {
     // Vérifier que Firebase est configuré
     if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-      console.error('Firebase not configured');
+      console.error('[API] Firebase not configured');
       return NextResponse.json(
         { error: 'Configuration Firebase manquante' },
         { status: 500 }
       );
     }
+    console.log('[API] Firebase config OK');
 
     let body;
     try {
       body = await request.json();
+      console.log('[API] Body parsé:', { firstName: body.firstName, lastName: body.lastName });
     } catch (error) {
-      console.error('Error parsing request body:', error);
+      console.error('[API] Error parsing request body:', error);
       return NextResponse.json(
         { error: 'Format de données invalide' },
         { status: 400 }
@@ -37,8 +42,9 @@ export async function POST(request: NextRequest) {
     let validatedData;
     try {
       validatedData = createProfileSchema.parse(body);
+      console.log('[API] Données validées');
     } catch (error) {
-      console.error('Validation error:', error);
+      console.error('[API] Validation error:', error);
       return NextResponse.json(
         { error: 'Les données fournies sont invalides. Veuillez vérifier votre saisie.' },
         { status: 400 }
@@ -46,6 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculs numérologiques
+    console.log('[API] Calculs numérologiques...');
     const lifePath = calculateLifePath(validatedData.birthDate, false);
     const expression = calculateExpression(
       validatedData.firstName,
@@ -59,6 +66,7 @@ export async function POST(request: NextRequest) {
       validatedData.firstName,
       validatedData.lastName
     );
+    console.log('[API] Calculs terminés:', { lifePath, expression, soulUrge, personality });
 
     // Création du profil
     let profile;
@@ -155,9 +163,11 @@ export async function POST(request: NextRequest) {
       }
     })();
 
-    // Logger l'événement
+    // Logger l'événement (asynchrone, ne bloque pas)
     logEventAsync('profile_created', { profileId: profile.id }, profile.id);
-    logEventAsync('report_generated', { type: 'FREE', profileId: profile.id }, profile.id);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[API] Réponse envoyée en ${elapsed}ms`);
 
     return NextResponse.json(
       {

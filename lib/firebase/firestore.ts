@@ -80,8 +80,12 @@ export async function createProfile(data: {
   birthDate: string;
   birthPlace?: string | null;
 }): Promise<Profile> {
+  const startTime = Date.now();
   try {
+    console.log('[Firestore] Initialisation de getDb()...');
     const db = getDb();
+    console.log('[Firestore] getDb() OK, création du document...');
+    
     const profileRef = doc(collection(db, 'profiles'));
     const id = profileRef.id;
     const profileData = {
@@ -90,7 +94,9 @@ export async function createProfile(data: {
       createdAt: serverTimestamp(),
     };
 
+    console.log('[Firestore] setDoc en cours...');
     await setDoc(profileRef, profileData);
+    console.log(`[Firestore] Profile créé en ${Date.now() - startTime}ms`);
 
     return {
       id,
@@ -98,7 +104,7 @@ export async function createProfile(data: {
       createdAt: new Date(),
     };
   } catch (error) {
-    console.error('Error creating profile in Firestore:', error);
+    console.error(`[Firestore] Error creating profile (${Date.now() - startTime}ms):`, error);
     throw new Error(`Failed to create profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

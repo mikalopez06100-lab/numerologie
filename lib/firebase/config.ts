@@ -63,10 +63,16 @@ function initializeFirebase() {
 
 // Exporter une fonction qui initialise et retourne db
 export function getDb(): Firestore {
+  const startTime = Date.now();
+  console.log('[Firebase] getDb() appelé');
+  
   if (!dbInstance) {
+    console.log('[Firebase] Initialisation nécessaire...');
     const { db } = initializeFirebase();
+    console.log(`[Firebase] Initialisation terminée en ${Date.now() - startTime}ms`);
     return db;
   }
+  console.log(`[Firebase] getDb() retourné (cached) en ${Date.now() - startTime}ms`);
   return dbInstance;
 }
 
