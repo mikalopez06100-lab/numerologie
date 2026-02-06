@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { createProfile, createNumerology, createReport } from '@/lib/firebase/firestore-admin';
+import { createProfile, createNumerology, createReport } from '@/lib/firebase/firestore';
 import { createProfileSchema } from '@/lib/validations';
 import {
   calculateLifePath,
@@ -121,21 +121,26 @@ export async function POST(request: NextRequest) {
 
     // Générer le rapport gratuit de manière asynchrone (ne pas bloquer la réponse)
     // On répond immédiatement et on génère le rapport en arrière-plan
-    (async () => {
+    setImmediate(async () => {
       try {
-        console.log('Génération du rapport gratuit en arrière-plan...');
+        console.log('[Background] Génération du rapport gratuit...');
         const freeReportContent = await generateFreeReport(profileData);
-        console.log('Rapport généré avec succès');
+        console.log('[Background] Rapport généré');
         
-        // Sauvegarder le rapport FREE
-        await createReport({
-          profileId: profile.id,
-          type: 'FREE',
-          contentJson: JSON.stringify(freeReportContent),
-        });
-        console.log('Rapport sauvegardé');
+        // Sauvegarder le rapport FREE avec timeout
+        await Promise.race([
+          createReport({
+            profileId: profile.id,
+            type: 'FREE',
+            contentJson: JSON.stringify(freeReportContent),
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Report save timeout')), 10000)
+          )
+        ]);
+        console.log('[Background] Rapport sauvegardé');
       } catch (error) {
-        console.error('Error generating/saving report:', error);
+        console.error('[Background] Error generating/saving report:', error);
         // Utiliser le fallback si OpenAI échoue
         try {
           const fallbackReport = {
@@ -158,10 +163,10 @@ export async function POST(request: NextRequest) {
             contentJson: JSON.stringify(fallbackReport),
           });
         } catch (saveError) {
-          console.error('Error saving fallback report:', saveError);
+          console.error('[Background] Error saving fallback report:', saveError);
         }
       }
-    })();
+    });
 
     // Logger l'événement (asynchrone, ne bloque pas)
     logEventAsync('profile_created', { profileId: profile.id }, profile.id);
@@ -240,6 +245,3 @@ export async function POST(request: NextRequest) {
     }
   }
 }
-
-
-

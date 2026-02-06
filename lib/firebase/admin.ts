@@ -1,47 +1,56 @@
 import * as admin from 'firebase-admin';
 
 let app: admin.app.App | null = null;
+let db: admin.firestore.Firestore | null = null;
 
 /**
- * Initialise Firebase Admin SDK
- * Utilise le service account JSON depuis les variables d'environnement
+ * Initialise Firebase Admin SDK de manière sécurisée
  */
-export function getAdminApp(): admin.app.App {
-  if (app) {
-    return app;
+function initializeAdmin(): void {
+  if (app && db) {
+    return;
   }
 
   // Vérifier que le service account est configuré
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   
   if (!serviceAccountJson) {
-    throw new Error(
-      'FIREBASE_SERVICE_ACCOUNT_JSON is not set. Please configure it in Vercel environment variables.'
-    );
+    console.error('FIREBASE_SERVICE_ACCOUNT_JSON is not set');
+    throw new Error('Firebase Admin not configured. Please set FIREBASE_SERVICE_ACCOUNT_JSON in Vercel.');
   }
 
   try {
     const serviceAccount = JSON.parse(serviceAccountJson);
     
-    if (!app) {
+    // Vérifier que l'app n'est pas déjà initialisée
+    if (admin.apps.length === 0) {
       app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+    } else {
+      app = admin.app();
     }
 
-    return app;
+    db = app.firestore();
+    
+    // Configuration Firestore pour éviter les timeouts
+    db.settings({
+      ignoreUndefinedProperties: true,
+    });
   } catch (error) {
     console.error('Error initializing Firebase Admin:', error);
     throw new Error(
-      `Failed to initialize Firebase Admin: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Firebase Admin initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
 
 /**
- * Retourne l'instance Firestore Admin
+ * Retourne l'instance Firestore Admin (initialise si nécessaire)
  */
 export function getAdminDb(): admin.firestore.Firestore {
-  const adminApp = getAdminApp();
-  return adminApp.firestore();
+  if (!db) {
+    initializeAdmin();
+  }
+  return db!;
 }

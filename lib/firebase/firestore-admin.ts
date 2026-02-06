@@ -65,19 +65,29 @@ export async function createProfile(data: {
 }): Promise<Profile> {
   const startTime = Date.now();
   try {
-    console.log('[Firestore Admin] Création du profil...');
     const db = getAdminDb();
     
+    // Créer le document avec timeout
     const profileRef = db.collection('profiles').doc();
     const id = profileRef.id;
-    const profileData = {
+    
+    // Utiliser batch write pour plus de fiabilité
+    const batch = db.batch();
+    batch.set(profileRef, {
       ...data,
       id,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    });
+    
+    // Timeout de 10 secondes pour l'écriture
+    await Promise.race([
+      batch.commit(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firestore write timeout')), 10000)
+      )
+    ]);
 
-    await profileRef.set(profileData);
-    console.log(`[Firestore Admin] Profile créé en ${Date.now() - startTime}ms`);
+    console.log(`[Firestore] Profile créé en ${Date.now() - startTime}ms`);
 
     return {
       id,
@@ -85,8 +95,8 @@ export async function createProfile(data: {
       createdAt: new Date(),
     };
   } catch (error) {
-    console.error(`[Firestore Admin] Error creating profile (${Date.now() - startTime}ms):`, error);
-    throw new Error(`Failed to create profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(`[Firestore] Error creating profile (${Date.now() - startTime}ms):`, error);
+    throw error;
   }
 }
 
@@ -124,13 +134,18 @@ export async function createNumerology(data: {
   const db = getAdminDb();
   const numerologyRef = db.collection('numerologies').doc();
   const id = numerologyRef.id;
-  const numerologyData = {
-    ...data,
-    id,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  };
-
-  await numerologyRef.set(numerologyData);
+  
+  // Timeout de 10 secondes
+  await Promise.race([
+    numerologyRef.set({
+      ...data,
+      id,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Firestore write timeout')), 10000)
+    )
+  ]);
 
   return {
     id,
