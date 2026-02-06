@@ -66,22 +66,16 @@ export async function createProfile(data: {
   const startTime = Date.now();
   try {
     const db = getAdminDb();
-    
-    // Créer le document avec timeout
     const profileRef = db.collection('profiles').doc();
     const id = profileRef.id;
     
-    // Utiliser batch write pour plus de fiabilité
-    const batch = db.batch();
-    batch.set(profileRef, {
-      ...data,
-      id,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    
     // Timeout de 10 secondes pour l'écriture
     await Promise.race([
-      batch.commit(),
+      profileRef.set({
+        ...data,
+        id,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Firestore write timeout')), 10000)
       )
