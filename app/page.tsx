@@ -1,15 +1,10 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import Card from '@/components/ui/Card';
 
 export default function Home() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -19,45 +14,16 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
     setIsLoading(true);
 
-    try {
-      // Timeout de 30 secondes pour l'appel API (réduit car le rapport est généré en arrière-plan)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+    // Simuler un délai
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const response = await fetch('/api/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          birthDate: formData.birthDate,
-          birthPlace: formData.birthPlace || undefined,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erreur lors de la création du profil');
-      }
-
-      const data = await response.json();
-      router.push(`/analyse/${data.profileId}`);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError('La requête a pris trop de temps. Veuillez réessayer.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-      }
-      setIsLoading(false);
-    }
+    // Pour l'instant, on affiche juste les données dans la console
+    console.log('Données du formulaire:', formData);
+    alert(`Formulaire soumis !\n\nPrénom: ${formData.firstName}\nNom: ${formData.lastName}\nDate: ${formData.birthDate}\nLieu: ${formData.birthPlace || 'Non renseigné'}`);
+    
+    setIsLoading(false);
   };
 
   return (
@@ -88,12 +54,6 @@ export default function Home() {
         {/* Formulaire dans une boîte semi-transparente */}
         <div className="glass-form-container">
           <form onSubmit={handleSubmit} className="space-y-6 p-8">
-            {error && (
-              <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 text-red-200">
-                {error}
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="Prénom"
@@ -106,36 +66,29 @@ export default function Home() {
                 placeholder=""
                 className="glass-input"
               />
-              <div>
-                <Input
-                  label="Nom"
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastName: e.target.value })
-                  }
-                  placeholder=""
-                  className="glass-input"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[#FAF7F2]">
-                Naissance
-              </label>
               <Input
-                label="Date de naissance"
-                type="date"
+                label="Nom"
+                type="text"
                 required
-                value={formData.birthDate}
+                value={formData.lastName}
                 onChange={(e) =>
-                  setFormData({ ...formData, birthDate: e.target.value })
+                  setFormData({ ...formData, lastName: e.target.value })
                 }
+                placeholder=""
                 className="glass-input"
               />
             </div>
+
+            <Input
+              label="Date de naissance"
+              type="date"
+              required
+              value={formData.birthDate}
+              onChange={(e) =>
+                setFormData({ ...formData, birthDate: e.target.value })
+              }
+              className="glass-input"
+            />
 
             <Input
               label="Lieu de naissance (optionnel)"
