@@ -17,15 +17,15 @@ export async function POST(request: NextRequest) {
   console.log('[API] POST /api/profile - Début');
   
   try {
-    // Vérifier que Firebase est configuré
-    if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-      console.error('[API] Firebase not configured');
+    // Vérifier que Firebase Admin est configuré
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      console.error('[API] FIREBASE_SERVICE_ACCOUNT_JSON not set');
       return NextResponse.json(
-        { error: 'Configuration Firebase manquante' },
+        { error: 'Configuration Firebase Admin manquante' },
         { status: 500 }
       );
     }
-    console.log('[API] Firebase config OK');
+    console.log('[API] Firebase Admin config OK');
 
     let body;
     try {
@@ -71,18 +71,20 @@ export async function POST(request: NextRequest) {
     // Création du profil
     let profile;
     try {
-      console.log('Création du profil...');
+      console.log('[API] Création du profil...');
+      const profileStartTime = Date.now();
       profile = await createProfile({
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         birthDate: validatedData.birthDate,
         birthPlace: validatedData.birthPlace || null,
       });
-      console.log('Profil créé:', profile.id);
+      console.log(`[API] Profil créé en ${Date.now() - profileStartTime}ms:`, profile.id);
     } catch (error) {
-      console.error('Error creating profile:', error);
+      console.error('[API] Error creating profile:', error);
+      console.error('[API] Error details:', error instanceof Error ? error.message : String(error));
       return NextResponse.json(
-        { error: 'Erreur lors de la création du profil' },
+        { error: `Erreur lors de la création du profil: ${error instanceof Error ? error.message : 'Erreur inconnue'}` },
         { status: 500 }
       );
     }
@@ -90,7 +92,8 @@ export async function POST(request: NextRequest) {
     // Création de la numérologie
     let numerology;
     try {
-      console.log('Création de la numérologie...');
+      console.log('[API] Création de la numérologie...');
+      const numerologyStartTime = Date.now();
       numerology = await createNumerology({
         profileId: profile.id,
         lifePath,
@@ -98,11 +101,12 @@ export async function POST(request: NextRequest) {
         soulUrge,
         personality,
       });
-      console.log('Numérologie créée:', numerology.id);
+      console.log(`[API] Numérologie créée en ${Date.now() - numerologyStartTime}ms:`, numerology.id);
     } catch (error) {
-      console.error('Error creating numerology:', error);
+      console.error('[API] Error creating numerology:', error);
+      console.error('[API] Error details:', error instanceof Error ? error.message : String(error));
       return NextResponse.json(
-        { error: 'Erreur lors du calcul numérologique' },
+        { error: `Erreur lors du calcul numérologique: ${error instanceof Error ? error.message : 'Erreur inconnue'}` },
         { status: 500 }
       );
     }
