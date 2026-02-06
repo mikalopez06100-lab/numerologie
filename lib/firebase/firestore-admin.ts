@@ -1,5 +1,5 @@
 import { getAdminDb } from './admin';
-import type admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 
 // Types pour correspondre au schéma Prisma
 export interface Profile {
