@@ -126,12 +126,15 @@ export async function POST(request: NextRequest) {
     // Générer le rapport gratuit de manière asynchrone (ne pas bloquer la réponse)
     // On répond immédiatement et on génère le rapport en arrière-plan
     setImmediate(async () => {
+      const bgStartTime = Date.now();
       try {
-        console.log('[Background] Génération du rapport gratuit...');
+        console.log('[Background] Début génération du rapport gratuit...');
         const freeReportContent = await generateFreeReport(profileData);
-        console.log('[Background] Rapport généré');
+        console.log(`[Background] Rapport généré en ${Date.now() - bgStartTime}ms`);
         
         // Sauvegarder le rapport FREE avec timeout
+        console.log('[Background] Sauvegarde du rapport...');
+        const saveStartTime = Date.now();
         await Promise.race([
           createReport({
             profileId: profile.id,
@@ -142,11 +145,13 @@ export async function POST(request: NextRequest) {
             setTimeout(() => reject(new Error('Report save timeout')), 10000)
           )
         ]);
-        console.log('[Background] Rapport sauvegardé');
+        console.log(`[Background] Rapport sauvegardé en ${Date.now() - saveStartTime}ms (total: ${Date.now() - bgStartTime}ms)`);
       } catch (error) {
-        console.error('[Background] Error generating/saving report:', error);
+        console.error(`[Background] Erreur après ${Date.now() - bgStartTime}ms:`, error);
+        console.error('[Background] Détails:', error instanceof Error ? error.message : String(error));
         // Utiliser le fallback si OpenAI échoue
         try {
+          console.log('[Background] Création du rapport fallback...');
           const fallbackReport = {
             portrait: `Bonjour ${profile.firstName}, votre profil numérologique révèle des traits uniques basés sur votre chemin de vie ${numerology.lifePath}, votre expression ${numerology.expression} et votre aspiration ${numerology.soulUrge}.`,
             forces: [
@@ -166,8 +171,9 @@ export async function POST(request: NextRequest) {
             type: 'FREE',
             contentJson: JSON.stringify(fallbackReport),
           });
+          console.log('[Background] Rapport fallback sauvegardé');
         } catch (saveError) {
-          console.error('[Background] Error saving fallback report:', saveError);
+          console.error('[Background] Erreur lors de la sauvegarde du fallback:', saveError);
         }
       }
     });

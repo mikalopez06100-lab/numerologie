@@ -7,6 +7,13 @@ import { getFreeReportPrompt, getPromptForReportType } from './prompts';
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
+// Log pour vérifier la configuration
+if (openaiApiKey) {
+  console.log('[OpenAI] Clé API détectée (longueur:', openaiApiKey.length, ')');
+} else {
+  console.warn('[OpenAI] Aucune clé API détectée, utilisation du fallback');
+}
+
 // Initialiser le client OpenAI seulement si la clé est présente
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
@@ -55,13 +62,17 @@ function parseAndValidateJson<T>(
 export async function generateFreeReport(
   data: ProfileData
 ): Promise<FreeReportContent> {
+  const startTime = Date.now();
+  console.log('[OpenAI] Génération du rapport gratuit...');
+  
   if (!openai) {
-    console.log('OpenAI non configuré, utilisation du fallback');
+    console.log('[OpenAI] OpenAI non configuré, utilisation du fallback');
     return generateFallbackFreeReport(data);
   }
 
   try {
     const prompt = getFreeReportPrompt(data);
+    console.log('[OpenAI] Prompt généré, appel API...');
 
     // Timeout de 30 secondes pour éviter que la requête ne reste bloquée
     const timeoutPromise = new Promise((_, reject) => {
@@ -85,23 +96,28 @@ export async function generateFreeReport(
       max_tokens: 1000, // Limiter la réponse pour éviter les timeouts
     });
 
+    console.log('[OpenAI] En attente de la réponse...');
     const completion = await Promise.race([completionPromise, timeoutPromise]) as any;
+    console.log(`[OpenAI] Réponse reçue en ${Date.now() - startTime}ms`);
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
       throw new Error('Pas de contenu dans la réponse OpenAI');
     }
 
+    console.log('[OpenAI] Validation du JSON...');
     const validated = parseAndValidateJson(content, freeReportSchema);
     if (validated) {
+      console.log(`[OpenAI] Rapport généré avec succès en ${Date.now() - startTime}ms`);
       return validated;
     }
 
     // Si validation échoue, utiliser fallback
-    console.warn('Validation JSON échouée, utilisation du fallback');
+    console.warn('[OpenAI] Validation JSON échouée, utilisation du fallback');
     return generateFallbackFreeReport(data);
   } catch (error) {
-    console.error('Erreur OpenAI, utilisation du fallback:', error);
+    console.error(`[OpenAI] Erreur après ${Date.now() - startTime}ms:`, error);
+    console.error('[OpenAI] Détails:', error instanceof Error ? error.message : String(error));
     return generateFallbackFreeReport(data);
   }
 }
