@@ -20,6 +20,7 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
     "firebase": "^12.9.0",
+    "firebase-admin": "^13.6.1",
     "next": "^14.2.18",
     "openai": "^4.52.0",
     "postcss": "^8.4.39",

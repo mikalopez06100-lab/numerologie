@@ -1,4 +1,4 @@
-import { createEventLog } from './firebase/firestore';
+import { createEventLog } from './firebase/firestore-admin';
 
 export type EventType =
   | 'profile_created'
@@ -51,3 +51,5 @@ export function logEventAsync(
     });
   }, 0);
 }
+
+

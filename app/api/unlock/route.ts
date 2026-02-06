@@ -5,7 +5,7 @@ import {
   getUnlockByProfileAndModule,
   createOrUpdateUnlock,
   createReport,
-} from '@/lib/firebase/firestore';
+} from '@/lib/firebase/firestore-admin';
 import { z } from 'zod';
 import { generatePremiumReport } from '@/lib/ai/openai';
 import type { ProfileData } from '@/lib/ai/prompts';
@@ -169,3 +169,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+

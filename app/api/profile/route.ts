@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { createProfile, createNumerology, createReport } from '@/lib/firebase/firestore';
+import { createProfile, createNumerology, createReport } from '@/lib/firebase/firestore-admin';
 import { createProfileSchema } from '@/lib/validations';
 import {
   calculateLifePath,
@@ -240,3 +240,6 @@ export async function POST(request: NextRequest) {
     }
   }
 }
+
+
+

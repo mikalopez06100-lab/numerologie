@@ -4,7 +4,7 @@ import {
   getNumerologyByProfileId,
   getUnlocksByProfileId,
   getReportsByProfileId,
-} from '@/lib/firebase/firestore';
+} from '@/lib/firebase/firestore-admin';
 
 export async function GET(
   request: NextRequest,
@@ -43,3 +43,5 @@ export async function GET(
     );
   }
 }
+
+
